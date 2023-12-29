@@ -1,0 +1,63 @@
+---
+name: "Dev Infra Build"
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance_type:
+        description: "instance type"
+        required: true
+        type: choice
+        options:
+        - t2.micro
+        - t2.small
+
+      ami_id:
+        description: "ami id"
+        required: true
+        type: string
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.DEV_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.DEV_AWS_REGION }}
+
+    steps:
+
+      - name: "checkout repository"
+        uses: actions/checkout@v3
+
+      - name: "terraform installation"
+        uses: hashicorp/setup-terraform@v3
+
+      - name: "terraform init"
+        run: | 
+          terraform init \
+            -backend-config="access_key=${{ secrets.DEV_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.DEV_SECRET_ACCESS_KEY }}" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="bucket=${{ secrets.DEV_S3_BUCKET }}" \
+            -backend-config="key=terraform.tfstate"
+
+      - name: "terraform format"
+        run: terraform fmt
+
+      - name: "terraform validate"
+        run: terraform validate
+
+      - name: "terraform plan"
+        run: |
+          terraform plan \
+          -var "instance_type=${{ github.event.inputs.instance_type }}" \
+          -var "ami_id=${{ github.event.inputs.ami_id }}"
+
+      - name: "terraform apply"
+        run: |
+          terraform apply \
+          -var "instance_type=${{ github.event.inputs.instance_type }}" \
+          -var "ami_id=${{ github.event.inputs.ami_id }}" \
+          -auto-approve
