@@ -3,6 +3,19 @@ name: "Dev Infra Destroy"
 
 on:
   workflow_dispatch:
+    inputs:
+      instance_type:
+        description: "instance type"
+        required: true
+        type: choice
+        options:
+        - t2.micro
+        - t2.small
+
+      ami_id:
+        description: "ami id"
+        required: true
+        type: string
 
 jobs:
   build:
@@ -32,6 +45,6 @@ jobs:
       - name: "terraform destroy"
         run: |
           terraform destroy \
-          -var "instance_type"=${{ github.event.inputs.instance_type }}" \
-          -var "ami_id"=${{ github.event.inputs.ami_id }}" \
+          -var "instance_type=${{ github.event.inputs.instance_type }}" \
+          -var "ami_id=${{ github.event.inputs.ami_id }}" \
           -auto-approve
